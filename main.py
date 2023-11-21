@@ -42,11 +42,16 @@ def process_url(queue, url_dict, urls, i, dict_lock, db_lock): #function to proc
     return True
 
 def run():
+
     #initalize multiprocessing 
     processes = []
+
+    #locks:
     manager = multiprocessing.Manager()
     dict_lock = multiprocessing.Lock()
     db_lock = multiprocessing.Lock()
+
+    #visited url dict to avoid too many reads/writes from database
     url_dict = manager.dict()
 
     #create random number array to act as new urls 
