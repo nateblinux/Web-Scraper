@@ -53,7 +53,7 @@ robots.close()
 print("END ROBOTS.TXT User-agent: *")
 
 
-def process_url(queue, url_dict, dict_lock, db_lock, job_dict, job_lock):  # function to process urls
+def process_url(queue, url_dict, dict_lock, db_lock, job_dict):  # function to process urls
     while not queue.empty():
         url = queue.get()  # grab a url from queue
         # print(url, multiprocessing.current_process())
@@ -81,19 +81,17 @@ def process_url(queue, url_dict, dict_lock, db_lock, job_dict, job_lock):  # fun
         info = page_info["jobs"]
 
         #remove any already found jobs from the db query
-        with job_lock:
-            index = 0
-            for job in info:
-                if job["url"] in job_dict:
-                    info.remove(job)
-                    continue
-                job_dict[job["url"]] = "true"
-
-            index = index + 1                    
 
         if len(info) > 0:
             with db_lock:
-                url_col.insert_many(info)
+                for job in info:
+                    if job["url"] in job_dict:
+                        info.remove(job)
+                        continue
+                    else:
+                        job_dict[job["url"]] = "true"
+                        url_col.insert_one(job)
+
 
     return True
 
@@ -105,8 +103,7 @@ def run():
     # locks:
     manager = multiprocessing.Manager()
     dict_lock = multiprocessing.Lock()
-    db_lock = multiprocessing.Lock()
-    job_lock = multiprocessing.Lock()
+    db_lock = multiprocessing.Lock() #used for db and job_dict
 
     # visited url dict to avoid too many reads/writes from database
     url_dict = manager.dict()
@@ -116,7 +113,7 @@ def run():
 
     # start PROCESS number of processes working on the queue
     for n in range(PROCESSES):
-        p = multiprocessing.Process(target=process_url, args=(url_queue, url_dict, dict_lock, db_lock, job_dict, job_lock))
+        p = multiprocessing.Process(target=process_url, args=(url_queue, url_dict, dict_lock, db_lock, job_dict,))
         processes.append(p)
         p.start()
 
@@ -129,7 +126,14 @@ def run():
 
     # print the url dictionary
     print(f'{len(url_dict)} pages scraped')
-    print(f'{len(job_dict)} jobs found')
+    
+    urls = []
+    for item in url_col.find():
+        if item["url"] in urls:
+            print("duplicate", item["url"])
+            print("in dict? ", item["url"] in job_dict)
+        else:
+            urls.append(item["url"])
 
 
 
@@ -202,4 +206,5 @@ if __name__ == "__main__":
 
     end = time.time()
 
+    print(url_col.count_documents({}), "jobs found")
     print(f'time elapsed {end - start}')
