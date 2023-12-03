@@ -6,7 +6,6 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 
 PROCESSES = 4
-
 MAX_URLS = 9
 
 url_queue = multiprocessing.Queue()  # url queue for multiprocessing
@@ -20,14 +19,17 @@ query = "software+engineer"
 location = "Connecticut"
 num_pages = 5
 
+start = time.time()
+
 for page in range(num_pages):
-    url_queue.put(f"{base_url}/jobs?q={query}&l={location}&start={page + 1}")
+    url_queue.put(f"{base_url}/jobs?q={query}&l={location}&start={page + 1}0")
 
 #read robots.txt rules
 rules = []
 robots = open("robots.txt", "r")
 correct_agent = False
 
+print("DISALLOWED for User-agent: *")
 for rule in robots:
     if not rule.strip():
         continue
@@ -47,6 +49,8 @@ for rule in robots:
             rules.append(line)
 
 robots.close()
+
+print("END ROBOTS.TXT User-agent: *")
 
 
 def process_url(queue, url_dict, dict_lock, db_lock, job_dict, job_lock):  # function to process urls
@@ -81,7 +85,7 @@ def process_url(queue, url_dict, dict_lock, db_lock, job_dict, job_lock):  # fun
         for job in info:
             with job_lock:
                 if job["url"] in job_dict:
-                    info.pop(index)
+                    print(info.pop(index))
                     continue
                 job_dict[job["url"]] = "true"
 
@@ -195,3 +199,7 @@ def can_scrape(url, rules):
 
 if __name__ == "__main__":
     run()
+
+    end = time.time()
+
+    print(f'time elapsed {end - start}')
