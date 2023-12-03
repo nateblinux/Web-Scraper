@@ -81,9 +81,9 @@ def process_url(queue, url_dict, dict_lock, db_lock, job_dict, job_lock):  # fun
         info = page_info["jobs"]
 
         #remove any already found jobs from the db query
-        index = 0
-        for job in info:
-            with job_lock:
+        with job_lock:
+            index = 0
+            for job in info:
                 if job["url"] in job_dict:
                     print(info.pop(index))
                     continue
