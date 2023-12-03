@@ -49,7 +49,7 @@ for rule in robots:
 robots.close()
 
 
-def process_url(queue, url_dict, dict_lock, db_lock):  # function to process urls
+def process_url(queue, url_dict, dict_lock, db_lock, job_dict, job_lock):  # function to process urls
     while not queue.empty():
         url = queue.get()  # grab a url from queue
         # print(url, multiprocessing.current_process())
@@ -75,6 +75,18 @@ def process_url(queue, url_dict, dict_lock, db_lock):  # function to process url
 
         #insert into database
         info = page_info["jobs"]
+
+        #remove any already found jobs from the db query
+        index = 0
+        for job in info:
+            with job_lock:
+                if job["url"] in job_dict:
+                    info.pop(index)
+                    continue
+                job_dict[job["url"]] = "true"
+
+            index = index + 1                    
+
         if len(info) > 0:
             with db_lock:
                 url_col.insert_many(info)
@@ -90,15 +102,17 @@ def run():
     manager = multiprocessing.Manager()
     dict_lock = multiprocessing.Lock()
     db_lock = multiprocessing.Lock()
+    job_lock = multiprocessing.Lock()
 
     # visited url dict to avoid too many reads/writes from database
     url_dict = manager.dict()
+    job_dict = manager.dict()
 
     # create random number array to act as new urls
 
     # start PROCESS number of processes working on the queue
     for n in range(PROCESSES):
-        p = multiprocessing.Process(target=process_url, args=(url_queue, url_dict, dict_lock, db_lock,))
+        p = multiprocessing.Process(target=process_url, args=(url_queue, url_dict, dict_lock, db_lock, job_dict, job_lock))
         processes.append(p)
         p.start()
 
