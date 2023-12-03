@@ -85,7 +85,7 @@ def process_url(queue, url_dict, dict_lock, db_lock, job_dict, job_lock):  # fun
             index = 0
             for job in info:
                 if job["url"] in job_dict:
-                    print(info.pop(index))
+                    info.remove(job)
                     continue
                 job_dict[job["url"]] = "true"
 
