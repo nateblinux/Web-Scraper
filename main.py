@@ -124,8 +124,8 @@ def run():
     url_queue.close()
 
     # print the url dictionary
-    print(url_dict)
-    print(len(url_dict))
+    print(f'{len(url_dict)} pages scraped')
+    print(f'{len(job_dict)} jobs found')
 
 
 
@@ -135,15 +135,13 @@ def scrape(url):
 
     try:
         if(can_scrape(url, rules)):
-            print(f"Accessing URL: {url}")  # Print the URL being accessed
+            #print(f"Accessing URL: {url}")  # Print the URL being accessed
             driver.get(url)
 
             # Process the page content immediately after it loads
             page_info = process_page(driver.page_source, url)
             urls = page_info["urls"]
             jobs = page_info["jobs"]
-            print(f"Found {len(urls)} urls.")
-            print(f"Found {len(jobs)} jobs")
 
     finally:
         # Close the browser window
@@ -172,7 +170,7 @@ def process_page(html_content, curr_url):
         company_name = company.find('span')
         company_loc = company.find('div', {'data-testid' : 'text-location'})
         jobs.append({"url" : job_url, "title" : job_title.text.strip(), "company" : company_name.text.strip(), "location" : company_loc.text.strip()})
-        print(jobs)
+        #print(jobs)
 
     #grab the hrefs from the links on page
     for title in links:
