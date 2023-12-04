@@ -6,7 +6,7 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 
 PROCESSES = 4
-MAX_URLS = 9
+MAX_URLS = 500
 
 url_queue = multiprocessing.Queue()  # url queue for multiprocessing
 
@@ -20,6 +20,8 @@ location = "Connecticut"
 num_pages = 5
 
 start = time.time()
+
+url_queue.put(f"{base_url}/browsejobs/")
 
 for page in range(num_pages):
     url_queue.put(f"{base_url}/jobs?q={query}&l={location}&start={page + 1}0")
@@ -57,25 +59,28 @@ def process_url(queue, url_dict, dict_lock, db_lock, job_dict):  # function to p
     while not queue.empty():
         url = queue.get()  # grab a url from queue
         # print(url, multiprocessing.current_process())
-        with dict_lock:  # aquire lock to see if url is in dictionary
-
-            if len(url_dict) >= MAX_URLS: #clear the queue if the maximum number of scraped pages has been reached
-                continue
-
-            if (url in url_dict):  # check if url has been visited
-                continue
-
-            url_dict[url] = "visited"  # mark url as visited
-            # lock released
-        print(url, multiprocessing.current_process())  # print url + proccess ID
+        
+        print(len(url_dict), url, multiprocessing.current_process())  # print url + proccess ID
 
 
         page_info = scrape(url)
+
+        if not page_info:
+            continue
+
         new_urls = page_info["urls"]
 
         #put urls into queue
         for new_url in new_urls:
-            queue.put(new_url)
+
+            with dict_lock:  # aquire lock to see if url is in dictionary
+                if (new_url in url_dict):  # check if url has been visited
+                    continue
+
+                url_dict[new_url] = "visited"  # mark url as visited
+                # lock released
+                if not len(url_dict) >= MAX_URLS: #cap the queue at max urls
+                    queue.put(new_url)
 
         #insert into database
         info = page_info["jobs"]
@@ -125,7 +130,7 @@ def run():
     url_queue.close()
 
     # print the url dictionary
-    print(f'{len(url_dict)} pages scraped')
+    print(f'{len(url_dict)} pages found, {MAX_URLS} scraped')
     
     urls = []
     for item in url_col.find():
@@ -140,7 +145,7 @@ def run():
 def scrape(url):
     # Set up the WebDriver (using Chrome in this example)
     driver = webdriver.Chrome()
-
+    page_info = {}
     try:
         if(can_scrape(url, rules)):
             #print(f"Accessing URL: {url}")  # Print the URL being accessed
@@ -151,6 +156,8 @@ def scrape(url):
             urls = page_info["urls"]
             jobs = page_info["jobs"]
 
+    except Exception as e:
+        print(e)
     finally:
         # Close the browser window
         driver.quit()
@@ -171,7 +178,7 @@ def process_page(html_content, curr_url):
     for card in cards:     
         job_url = card.find('a')
         job_url = job_url.get("href")
-        if not "indeed.com" in job_url:
+        if not "indeed.com" in job_url and not "http" in job_url:
             job_url = f'https://indeed.com{job_url}'
         job_title = card.find('h2', {'class' : 'jobTitle'})
         company = card.find('div', {'class' : 'company_location'})
@@ -183,7 +190,7 @@ def process_page(html_content, curr_url):
     #grab the hrefs from the links on page
     for title in links:
         url = title.get("href")
-        if not ".com" in url:
+        if not "https://" in url:
             url = f'https://indeed.com{url}'
 
         if "indeed.com" in url:
