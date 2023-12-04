@@ -19,14 +19,16 @@ query = "software+engineer"
 location = "Connecticut"
 num_pages = 5
 
+#track the total run time
 start = time.time()
 
+#initial queue
 url_queue.put(f"{base_url}/browsejobs/")
 
 for page in range(num_pages):
     url_queue.put(f"{base_url}/jobs?q={query}&l={location}&start={page + 1}0")
 
-#read robots.txt rules
+#read robots.txt rules - Nathan Benham
 rules = []
 robots = open("robots.txt", "r")
 correct_agent = False
@@ -54,7 +56,7 @@ robots.close()
 
 print("END ROBOTS.TXT User-agent: *")
 
-
+#process the url queue in parallel. - Nathan Benham
 def process_url(queue, url_dict, dict_lock, db_lock, job_dict):  # function to process urls
     while not queue.empty():
         url = queue.get()  # grab a url from queue
@@ -101,6 +103,7 @@ def process_url(queue, url_dict, dict_lock, db_lock, job_dict):  # function to p
     return True
 
 
+#start the multprocessing processes + initialize shared resources - Nathan Benham
 def run():
     # initalize multiprocessing
     processes = []
@@ -141,7 +144,7 @@ def run():
             urls.append(item["url"])
 
 
-
+#scrape the web page -  Niall Geoghegan
 def scrape(url):
     # Set up the WebDriver (using Chrome in this example)
     driver = webdriver.Chrome()
@@ -164,7 +167,7 @@ def scrape(url):
 
     return page_info
 
-#This part can be converted into MongoDB
+#extract the information from the page -  Niall Geoghegan
 def process_page(html_content, curr_url):
     soup = BeautifulSoup(html_content, 'html.parser')
     links = soup.find_all('a')
@@ -199,7 +202,7 @@ def process_page(html_content, curr_url):
 
     return {"urls" : urls, "jobs" : jobs}
 
-#compare robots.txt rules
+#compare robots.txt rules to url - Nathan Benham
 def can_scrape(url, rules):
     for rule in rules:
         if rule in url:
@@ -208,10 +211,9 @@ def can_scrape(url, rules):
     return True
 
 
+
 if __name__ == "__main__":
     run()
-
     end = time.time()
-
     print(url_col.count_documents({}), "jobs found")
     print(f'time elapsed {end - start}')
