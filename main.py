@@ -6,7 +6,7 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 
 PROCESSES = 4
-MAX_URLS = 500
+MAX_URLS = 100
 
 url_queue = multiprocessing.Queue()  # url queue for multiprocessing
 
@@ -17,15 +17,15 @@ url_col = db["job_info"]
 base_url = "https://www.indeed.com"
 query = "software+engineer"
 location = "Connecticut"
-num_pages = 5
+#num_pages = 5
 
 #track the total run time
 start = time.time()
 
 #initial queue
-url_queue.put(f"{base_url}/browsejobs/")
+#url_queue.put(f"{base_url}/browsejobs/")
 
-for page in range(num_pages):
+for page in range(5):
     url_queue.put(f"{base_url}/jobs?q={query}&l={location}&start={page + 1}0")
 
 #read robots.txt rules - Nathan Benham
@@ -49,7 +49,7 @@ for rule in robots:
     if correct_agent:
         if not "Allow:" in rule:
             line = rule.rsplit(":")[1].strip()
-            print(line)
+            #print(line)
             rules.append(line)
 
 robots.close()
@@ -138,8 +138,9 @@ def run():
     urls = []
     for item in url_col.find():
         if item["url"] in urls:
-            print("duplicate", item["url"])
-            print("in dict? ", item["url"] in job_dict)
+            pass
+            #print("duplicate", item["url"])
+            #print("in dict? ", item["url"] in job_dict)
         else:
             urls.append(item["url"])
 
@@ -175,7 +176,7 @@ def scrape(url):
 #extract the information from the page -  Niall Geoghegan
 def process_page(html_content, curr_url):
     soup = BeautifulSoup(html_content, 'html.parser')
-    links = soup.find_all('a')
+    links = soup.find('nav', {'role': 'navigation'}).find_all('a') + soup.find_all('a', {'class': 'jobsearch-RelatedQueries-queryItem'})
     urls = []
     jobs = []
 
