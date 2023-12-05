@@ -4,6 +4,7 @@ from random import randint
 import pymongo
 from selenium import webdriver
 from bs4 import BeautifulSoup
+from bson.json_util import dumps
 
 PROCESSES = 4
 MAX_URLS = 100
@@ -145,7 +146,7 @@ def run():
             urls.append(item["url"])
 
 
-#scrape the web page -  Niall Geoghegan
+#scrape the web page -  Niall Geoghegan and Jenna Noce
 def scrape(url):
     # Set up the WebDriver (using Chrome in this example)
     options = webdriver.ChromeOptions()
@@ -173,7 +174,8 @@ def scrape(url):
 
     return page_info
 
-#extract the information from the page -  Niall Geoghegan
+
+#extract the information from the page -  Niall Geoghegan and Jenna Noce
 def process_page(html_content, curr_url):
     soup = BeautifulSoup(html_content, 'html.parser')
     links = soup.find('nav', {'role': 'navigation'}).find_all('a') + soup.find_all('a', {'class': 'jobsearch-RelatedQueries-queryItem'})
@@ -219,7 +221,25 @@ def can_scrape(url, rules):
 
 
 if __name__ == "__main__":
+    #Collect inputs
+    print("Enter job title:")
+    INPUT = input()
+    if not INPUT:
+        query = INPUT.replace(' ','+')
+
+    print("Enter location:")
+    INPUT = input()
+    if not INPUT:
+        location = INPUT
+
     run()
     end = time.time()
     print(url_col.count_documents({}), "jobs found")
     print(f'time elapsed {end - start}')
+
+    #output DB to json
+    cursor = url_col.find()
+    list_cur = list(cursor)
+    json_data = dumps(list_cur, indent = 2)
+    with open('data.json', 'w') as file:
+        file.write(json_data)
