@@ -41,7 +41,7 @@ for rule in robots:
     if "User-agent: *" in rule:
         correct_agent = True
         continue
-        
+
     if "User-agent:" in rule and correct_agent:
         correct_agent = False
         break
@@ -61,7 +61,7 @@ def process_url(queue, url_dict, dict_lock, db_lock, job_dict):  # function to p
     while not queue.empty():
         url = queue.get()  # grab a url from queue
         # print(url, multiprocessing.current_process())
-        
+
         print(len(url_dict), url, multiprocessing.current_process())  # print url + proccess ID
 
 
@@ -134,7 +134,7 @@ def run():
 
     # print the url dictionary
     print(f'{len(url_dict)} pages found, {MAX_URLS} scraped')
-    
+
     urls = []
     for item in url_col.find():
         if item["url"] in urls:
@@ -147,7 +147,12 @@ def run():
 #scrape the web page -  Niall Geoghegan
 def scrape(url):
     # Set up the WebDriver (using Chrome in this example)
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+    options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--ignore-ssl-errors')
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
+    driver = webdriver.Chrome(options)
     page_info = {}
     try:
         if(can_scrape(url, rules)):
@@ -178,7 +183,7 @@ def process_page(html_content, curr_url):
     cards = soup.find_all('div', {'class': 'slider_item'})
 
     #loop through the found cards + extract info
-    for card in cards:     
+    for card in cards:
         job_url = card.find('a')
         job_url = job_url.get("href")
         if not "indeed.com" in job_url and not "http" in job_url:
@@ -207,7 +212,7 @@ def can_scrape(url, rules):
     for rule in rules:
         if rule in url:
             return False
-    
+
     return True
 
 
