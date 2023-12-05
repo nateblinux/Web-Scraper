@@ -18,7 +18,7 @@ url_col = db["job_info"]
 base_url = "https://www.indeed.com"
 query = "software+engineer"
 location = "Connecticut"
-#num_pages = 5
+num_pages = 5
 
 #track the total run time
 start = time.time()
@@ -26,7 +26,7 @@ start = time.time()
 #initial queue
 #url_queue.put(f"{base_url}/browsejobs/")
 
-for page in range(5):
+for page in range(num_pages):
     url_queue.put(f"{base_url}/jobs?q={query}&l={location}&start={page + 1}0")
 
 #read robots.txt rules - Nathan Benham
@@ -221,7 +221,7 @@ def can_scrape(url, rules):
 
 
 if __name__ == "__main__":
-    #Collect inputs
+    #Collect inputs Jenna Noce
     print("Enter job title:")
     INPUT = input()
     if not INPUT:
